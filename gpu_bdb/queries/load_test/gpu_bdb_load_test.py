@@ -22,9 +22,11 @@ refresh_tables = [
     "web_sales",
 ]
 tables = [table.split(".")[0] for table in os.listdir(spark_schema_dir)]
+tables = ['web_sales', 'customer', 'store_sales', 'date_dim']
+# tables = ['store_sales', 'date_dim']
 
-scale = [x for x in config["data_dir"].split("/") if "sf" in x][0]
-part_size = 3
+# scale = [x for x in config["data_dir"].split("/") if "sf" in x][0]
+part_size = 1
 chunksize = "128 MiB"
 
 # Spark uses different names for column types, and RAPIDS doesn't yet support Decimal types.
@@ -105,14 +107,14 @@ def get_size_gb(table):
     size = subprocess.check_output(["du", "-sh", path]).split()[0].decode("utf-8")
     unit = size[-1]
 
-    size = math.ceil(float(size[:-1])) * multiplier(unit)
+    size = math.ceil(float(size[:-1].replace(",", "."))) * multiplier(unit)
 
     if table in refresh_tables:
         path = data_dir + "/data_refresh/" + table
         refresh_size = (
             subprocess.check_output(["du", "-sh", path]).split()[0].decode("utf-8")
         )
-        size = size + math.ceil(float(refresh_size[:-1])) * multiplier(refresh_size[-1])
+        size = size + math.ceil(float(refresh_size[:-1].replace(",", "."))) * multiplier(refresh_size[-1].replace(",", "."))
 
     return size
 
@@ -153,6 +155,8 @@ if __name__ == "__main__":
     from bdb_tools.cluster_startup import attach_to_cluster
     import cudf
     import dask_cudf
+
+    print("tables:", tables)
 
     config = gpubdb_argparser()
     client, bc = attach_to_cluster(config)
