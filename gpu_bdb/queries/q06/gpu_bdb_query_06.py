@@ -15,7 +15,7 @@
 #
 
 import sys
-
+import dask
 
 from bdb_tools.utils import (
     benchmark,
@@ -70,6 +70,17 @@ def read_tables(config):
     date_df = table_reader.read("date_dim", relevant_cols=date_cols)
     customer_df = table_reader.read("customer", relevant_cols=customer_cols)
 
+    # repartition tables to match the number of workers
+    nworkers = config["nworkers"]
+    ws_df = ws_df.repartition(npartitions=nworkers)
+    ss_df = ss_df.repartition(npartitions=nworkers)
+    customer_df = customer_df.repartition(npartitions=nworkers)
+
+    ws_df = ws_df.persist()
+    ss_df = ss_df.persist()
+    date_df = date_df.persist()
+    customer_df = customer_df.persist()
+
     return (ws_df, ss_df, date_df, customer_df)
 
 
@@ -118,6 +129,10 @@ def main(client, config):
         compute_result=config["get_read_time"],
         dask_profile=config["dask_profile"],
     )
+    print("number of partitions in ws_df:", ws_df.npartitions)
+    print("number of partitions in ss_df:", ss_df.npartitions)
+    print("number of partitions in date_df:", date_df.npartitions)
+    print("number of partitions in customer_df:", customer_df.npartitions)
 
     filtered_date_df = date_df.query(
         f"d_year >= {q06_YEAR} and d_year <= {q06_YEAR+1}", meta=date_df._meta
@@ -173,7 +188,6 @@ def main(client, config):
         )
         .reset_index()
     )
-
     store_sales_ratio_df = ss_grouped_df.map_partitions(
         get_sales_ratio, table="store_sales"
     )
@@ -213,6 +227,13 @@ def main(client, config):
         right_on="c_customer_sk",
         how="inner",
     ).reset_index(drop=True)
+
+    # stop here
+    sales_df = sales_df.persist()
+    dask.compute(sales_df)
+#    print("columns of sales_df: ", sales_df.columns)
+#    print("number of rows in sales_df: ", len(sales_df.index))
+    return None
 
     keep_cols = [
         "ws_bill_customer_sk",
@@ -256,5 +277,7 @@ if __name__ == "__main__":
     import dask_cudf
 
     config = gpubdb_argparser()
+    print("config: ", config)
     client, bc = attach_to_cluster(config)
+    print("client:", client)
     run_query(config=config, client=client, query_func=main)
