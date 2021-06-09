@@ -280,6 +280,9 @@ def run_dask_cudf_query(config, client, query_func, write_func=write_result):
             config=config,
         )
 
+        if results is None:
+            return
+
         benchmark(
             write_func,
             results,
