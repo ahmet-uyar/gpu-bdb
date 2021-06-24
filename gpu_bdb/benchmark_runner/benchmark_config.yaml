@@ -1,14 +1,16 @@
 # benchmark config yaml
 ### Please fill these accordingly
-data_dir:
+num_workers: 8
+partitions: 8
+data_dir: /path-to-data-dir/sf30/8/parquet_1gb
 output_dir:
 file_format: parquet
 output_filetype: parquet
-split_row_groups: False
+split_row_groups: True
 repartition_small_table: True
 benchmark_runner_include_bsql:
 
-scheduler_file_path:
+scheduler_file_path: /patho-to-project-dir/gpu-bdb/dask-local-directory/scheduler.json
 dask_profile: False
 
 verify_results: False
@@ -16,4 +18,4 @@ verify_dir:
 
 sheet:
 tab:
-get_read_time: False
+get_read_time: True
