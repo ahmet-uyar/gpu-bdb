@@ -71,10 +71,10 @@ def read_tables(config):
     customer_df = table_reader.read("customer", relevant_cols=customer_cols)
 
     # repartition tables to match the number of workers
-    nworkers = config["nworkers"]
-    ws_df = ws_df.repartition(npartitions=nworkers)
-    ss_df = ss_df.repartition(npartitions=nworkers)
-    customer_df = customer_df.repartition(npartitions=nworkers)
+    partitions = config["partitions"]
+    ws_df = ws_df.repartition(npartitions=partitions)
+    ss_df = ss_df.repartition(npartitions=partitions)
+    customer_df = customer_df.repartition(npartitions=partitions)
 
     ws_df = ws_df.persist()
     ss_df = ss_df.persist()
@@ -229,6 +229,7 @@ def main(client, config):
     ).reset_index(drop=True)
 
     # stop here
+    # sales_df.visualize(filename='sales_df.svg')
     sales_df = sales_df.persist()
     dask.compute(sales_df)
 #    print("columns of sales_df: ", sales_df.columns)
