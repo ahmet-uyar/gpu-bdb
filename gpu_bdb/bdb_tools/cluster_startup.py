@@ -113,14 +113,16 @@ def attach_to_cluster(config, create_blazing_context=False):
 
     # Save worker information
     # Assumes all GPUs are the same size
-    expected_workers = int(os.environ.get("NUM_WORKERS", 16))
+    if not config["num_workers"]:
+        raise ValueError("num_workers must be specified in benchmark_config.yaml")
+    expected_workers = int(config["num_workers"])
     worker_counts = worker_count_info(client)
     for gpu_size, count in worker_counts.items():
         if count != 0:
             current_workers = worker_counts.pop(gpu_size)
             break
 
-    if expected_workers is not None and expected_workers != current_workers:
+    if expected_workers != current_workers:
         print(
             f"Expected {expected_workers} {gpu_size} workers in your cluster, but got {current_workers}. It can take a moment for all workers to join the cluster. You may also have misconfigred hosts."
         )
