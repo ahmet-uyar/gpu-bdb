@@ -98,10 +98,31 @@ class ParquetReader(Reader):
     def show_tables(self):
         return self.table_path_mapping.keys()
 
-    def read(self, table, relevant_cols=None, **kwargs):
+    def _read_s3(self, filepath, relevant_cols=None, **kwargs):
+        import dask_cudf
+        import dask.dataframe as dd
+
+        if self.split_row_groups:
+            df = dd.read_parquet(
+                filepath,
+                columns=relevant_cols,
+                split_row_groups=self.split_row_groups,
+                gather_statistics=True,
+                **kwargs,
+            )
+        else:
+            df = dd.read_parquet(
+                filepath,
+                columns=relevant_cols,
+                split_row_groups=self.split_row_groups,
+                gather_statistics=False,
+                **kwargs,
+            )
+        return dask_cudf.from_dask_dataframe(df)
+
+    def _read_non_s3(self, filepath, relevant_cols=None, **kwargs):
         import dask_cudf
 
-        filepath = self.table_path_mapping[table]
         # we ignore split_row_groups if gather_statistics=False
         if self.split_row_groups:
 
@@ -120,6 +141,15 @@ class ParquetReader(Reader):
                 gather_statistics=False,
                 **kwargs,
             )
+        return df
+
+    def read(self, table, relevant_cols=None, **kwargs):
+
+        filepath = self.table_path_mapping[table]
+        if filepath.startswith("s3://"):
+            df = self._read_s3(filepath=filepath, relevant_cols=relevant_cols, **kwargs)
+        else:
+            df = self._read_non_s3(filepath=filepath, relevant_cols=relevant_cols, **kwargs)
 
         ## Repartition small tables to a single partition to prevent
         ## distributed merges when possible
