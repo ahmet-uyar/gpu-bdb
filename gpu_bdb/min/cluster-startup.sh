@@ -10,9 +10,10 @@ LOGDIR=$LOCAL_DIRECTORY/logs
 WORKER_DIR=$GPU_BDB_HOME/gpu-bdb-dask-workers/
 
 # Cluster memory configuration
-MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
-DEVICE_MEMORY_LIMIT=15GB
-POOL_SIZE=29GB
+#MAX_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2}')M
+MAX_SYSTEM_MEMORY=64663M
+DEVICE_MEMORY_LIMIT=16GB
+POOL_SIZE=16GB
 
 # Dask-cuda optional configuration
 export DASK_JIT_UNSPILL=True
@@ -52,7 +53,7 @@ echo "Starting workers with NVLINK ..."
 echo "device memory limit: " $DEVICE_MEMORY_LIMIT
 echo "RMM POOL_SIZE: " $POOL_SIZE
 echo "memory limit: " $MAX_SYSTEM_MEMORY
-CUDA_VISIBLE_DEVICES=0,1,2,3 \
+CUDA_VISIBLE_DEVICES=1,2,3,4 \
 dask-cuda-worker --device-memory-limit $DEVICE_MEMORY_LIMIT \
                  --local-directory $WORKER_DIR \
                  --rmm-pool-size $POOL_SIZE \
